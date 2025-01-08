@@ -1,37 +1,85 @@
 package com.hafeezarfi.aopdemo.aspect;
 
+import com.hafeezarfi.aopdemo.Account;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+
 
 @Aspect
 @Component
+@Order(2)
 public class MyDemoLoggingAspect {
 
-    @Pointcut("execution(* com.hafeezarfi.aopdemo.dao.*.*(..))")
-    public void forDaoPackage(){}
+    // add a new advice for @AfterReturning on the findAccounts method
 
-    // create a pointcut for getter methods
-    @Pointcut("execution(* com.hafeezarfi.aopdemo.dao.*.get*(..))")
-    private void getter(){}
+    @AfterReturning(
+            pointcut = "execution(* com.hafeezarfi.aopdemo.dao.AccountDAO.findAccounts(..))",
+            returning = "result"
+    )
+    public void afterReturningFindAccountsAdvice(JoinPoint theJoinPoint, List<Account> result){
 
-    // create a pointcut for setter methods
-    @Pointcut("execution(* com.hafeezarfi.aopdemo.dao.*.set*(..))")
-    private void setter(){}
+        // print out which method we are advising on
+        String method = theJoinPoint.getSignature().toShortString();
+        System.out.println("\n=====>>> Executing @AfterReturning on method: "+method);
 
-    // create pointcut: include package ... exclude getter/setter
-    @Pointcut("forDaoPackage() && !(getter() || setter())")
-    private void forDaoPackageNoGetterSetter(){}
+        // print out the results of method call
+        System.out.println("\n=====>>> result is: "+result);
 
-    @Before("forDaoPackageNoGetterSetter()")
-    public void beforeAddAccountAdvice(){
+        // let's post-process the data ... let's modify it :-)
+
+        // convert the account name to uppercase
+        convertAccountNamesToUpperCase(result);
+
+        System.out.println("\n=====>>> result is: "+result);
+    }
+
+    private void convertAccountNamesToUpperCase(List<Account> result) {
+        // loop through accounts
+        for(Account tempAccount:result) {
+
+            // get uppercase version of name
+            String theUpperName = tempAccount.getName().toUpperCase();
+
+            // update the name on the account
+            tempAccount.setName(theUpperName);
+        }
+    }
+
+    @Before("com.hafeezarfi.aopdemo.aspect.LuvAopExpressions.forDaoPackageNoGetterSetter()")
+    public void beforeAddAccountAdvice(JoinPoint theJointPoint){
         System.out.println("\n=====>> Executing @Before advice on method");
+
+        // display the method signature
+        MethodSignature methodSignature = (MethodSignature) theJointPoint.getSignature();
+
+        System.out.println("Method: "+methodSignature);
+
+        // display method arguments
+
+        // get args
+        Object[] args = theJointPoint.getArgs();
+
+        // loop thru args
+        for(Object tempArg: args){
+            System.out.println(tempArg);
+
+            if (tempArg instanceof Account){
+
+                // downcast and print Account specific stuff
+                Account theAccount = (Account) tempArg;
+                System.out.println("account name: "+theAccount.getName());
+                System.out.println("account level: "+theAccount.getLevel());
+            }
+        }
+
     }
 
-
-    @Before("forDaoPackageNoGetterSetter()")
-    public void performApiAnalytics(){
-        System.out.println("\n=====> Performing API analytics");
-    }
 }
