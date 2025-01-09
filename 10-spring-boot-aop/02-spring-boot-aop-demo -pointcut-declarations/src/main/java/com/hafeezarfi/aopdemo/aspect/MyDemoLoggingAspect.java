@@ -2,6 +2,7 @@ package com.hafeezarfi.aopdemo.aspect;
 
 import com.hafeezarfi.aopdemo.Account;
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.*;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.core.annotation.Order;
@@ -14,6 +15,46 @@ import java.util.List;
 @Component
 @Order(2)
 public class MyDemoLoggingAspect {
+
+    @Around("execution(* com.hafeezarfi.aopdemo.service.*.getFortune(..))")
+    public Object aroundGetFortune(ProceedingJoinPoint theProceedingJoinPoint)throws Throwable{
+
+        // print out method we are advising on
+        String method = theProceedingJoinPoint.getSignature().toShortString();
+        System.out.println("\n=====>>> Executing @Around on method: "+method);
+
+        // get begin timestamp
+        long begin = System.currentTimeMillis();
+
+        // now, let's execute the method
+        Object result = null;
+
+        try {
+            result = theProceedingJoinPoint.proceed();
+        }catch (Exception exc){
+            // log the exception
+            System.out.println(exc.getMessage());
+
+            // rethrow exception
+            throw exc;
+        }
+
+        // get the timestamp
+        long end = System.currentTimeMillis();
+
+        // compute duration and display it
+        long duration = end-begin;
+        System.out.println("\n=====> Duration: "+duration/1000.0+" seconds");
+
+        return result;
+    }
+
+    @After("execution(* com.hafeezarfi.aopdemo.dao.AccountDAO.findAccounts(..))")
+    public void afterFinallyFindAccountsAdvice(JoinPoint theJoinPoint){
+
+        String method = theJoinPoint.getSignature().toShortString();
+        System.out.println("\n=====>>> Executing @After (finally) on method: "+method);
+    }
 
     @AfterThrowing(
             pointcut = "execution(* com.hafeezarfi.aopdemo.dao.AccountDAO.findAccounts(..))",
